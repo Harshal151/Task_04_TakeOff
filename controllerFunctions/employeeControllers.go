@@ -165,7 +165,7 @@ func CreateEmployee(employee sharedpackage.Employee) (*sharedpackage.Employee, e
 
 	// Assign IAM roles based on teams (replace with your actual implementation)
 	for i := 0; i < len(employee.TeamIDs); i++ {
-		AssignIAMRole(employee.DeptID, employee.TeamIDs[i], newDocID, employee.IAMRoles[employee.TeamIDs[i]])
+		AssignIAMRole(employee.DeptID, employee.TeamIDs[i], newDocID, employee.IAMRoles[employee.TeamIDs[i]], employee.Role)
 	}
 
 	log.Printf("CreateEmployee INFO: Employee added to Firestore: %+v", employee)

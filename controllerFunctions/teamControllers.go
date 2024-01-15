@@ -165,7 +165,7 @@ func CreateTeam(team sharedpackage.Team) (*sharedpackage.Team, error) {
 	}
 
 	log.Printf("INFO: Department document with ID %s and employee document updated successfully", newDocID)
-	AssignIAMRole(team.DepartmentID, newDocID, team.LeadID, team.IAMRoles)
+	AssignIAMRole(team.DepartmentID, newDocID, team.LeadID, team.IAMRoles, "Lead")
 	// Add the team data to the "teams" collection with the generated document ID
 	_, err = teamCollection.Doc(newDocID).Set(ctx, team)
 	if err != nil {
@@ -300,7 +300,7 @@ func UpdateTeam(teamID string, team sharedpackage.Team) (*sharedpackage.Team, er
 		employee1.Role = employee.Role
 		employee1.TeamIDs = employee.TeamIDs
 		employee1.IAMRoles =employee.IAMRoles
-		data, err := AssignIAMRole(employee1.DeptID, employee1.TeamIDs[0], team.LeadID, employee1.IAMRoles[employee1.TeamIDs[0]])
+		data, err := AssignIAMRole(employee1.DeptID, employee1.TeamIDs[0], team.LeadID, employee1.IAMRoles[employee1.TeamIDs[0]], employee1.Role)
 		if err != nil {
 			log.Printf("ERROR: Error while assigning IAM role: %v", err)
 			return nil, fmt.Errorf("Error assigning IAM role: %v", err)
@@ -322,7 +322,7 @@ func UpdateTeam(teamID string, team sharedpackage.Team) (*sharedpackage.Team, er
 		teamIDs := employee.TeamIDs
 		deptID := employee.DeptID
 		RemoveMember(leadID)
-		data, err := AssignIAMRole(deptID, teamID, team.LeadID, employee.IAMRoles[teamID])
+		data, err := AssignIAMRole(deptID, teamID, team.LeadID, employee.IAMRoles[teamID], role)
 		if err != nil {
 			log.Printf("ERROR: Error while assigning IAM role: %v", err)
 			return nil, fmt.Errorf("Error assigning IAM role: %v", err)

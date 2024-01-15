@@ -101,7 +101,7 @@ func AddDepartment(departmentName string, roles []string, headID string) (map[st
 		return nil, fmt.Errorf("Failed to add department document: %v", err)
 	}
 
-	AssignIAMRole(newDocID, "", headID, roles)
+	AssignIAMRole(newDocID, "", headID, roles, "HOD")
 
 	// Set the document data for the employee with merge
 	_, err = employeeCollection.Doc(headID).Set(ctx, map[string]interface{}{
@@ -417,7 +417,7 @@ func UpdateDepartment(deptID string, dept sharedpackage.Department) (*sharedpack
 		employee1.DeptID = employee.DeptID
 		employee1.Role = employee.Role
 		employee1.IAMRoles = employee.IAMRoles
-		data, err := AssignIAMRole(employee1.DeptID, "", dept.HeadID, employee1.IAMRoles[deptID])
+		data, err := AssignIAMRole(employee1.DeptID, "", dept.HeadID, employee1.IAMRoles[deptID], employee1.Role)
 		if err != nil {
 			log.Printf("ERROR: Error while assigning IAM role: %v", err)
 			return nil, fmt.Errorf("Error assigning IAM role: %v", err)
@@ -438,7 +438,7 @@ func UpdateDepartment(deptID string, dept sharedpackage.Department) (*sharedpack
 		role := employee.Role
 		deptID := employee.DeptID
 		RemoveMember(headID)
-		data, err := AssignIAMRole(deptID, deptID, dept.HeadID, employee.IAMRoles[deptID])
+		data, err := AssignIAMRole(deptID, deptID, dept.HeadID, employee.IAMRoles[deptID], role)
 		if err != nil {
 			log.Printf("ERROR: Error while assigning IAM role: %v", err)
 			return nil, fmt.Errorf("Error assigning IAM role: %v", err)

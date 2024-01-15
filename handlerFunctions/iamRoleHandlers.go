@@ -103,8 +103,28 @@ func AssignIAMRoleHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("ERROR: Provide iamRoles .")
 		return
 	}
+	if request.Role == "" {
+		http.Error(w, "Please provide role", http.StatusBadRequest)
+		log.Println("ERROR: Provide role.")
+		return
+	}
+	if request.Role == "HOD" {
+		http.Error(w, "HOD role cannot be assigned.", http.StatusBadRequest)
+		log.Println("ERROR: HOD job cannot be assigned.")
+		return
+	}
+	if request.Role == "Lead" {
+		http.Error(w, "Lead role cannot be assigned.", http.StatusBadRequest)
+		log.Println("ERROR: Lead job cannot be assigned.")
+		return
+	}
+	if request.Role == "Admin" {
+		http.Error(w, "Admin role cannot be assigned.", http.StatusBadRequest)
+		log.Println("ERROR: Admin job cannot be assigned.")
+		return
+	}
 
-	data, err := controllerFunctions.AssignIAMRole(request.DeptID, request.TeamID, employeeIDStr, request.IAMRoles)
+	data, err := controllerFunctions.AssignIAMRole(request.DeptID, request.TeamID, employeeIDStr, request.IAMRoles, request.Role)
 	if err != nil {
 		http.Error(w, "Failed to assign IAM role", http.StatusInternalServerError)
 		log.Printf("ERROR: Failed to assign IAM role: %v", err)
@@ -310,4 +330,52 @@ func UpdateCustomRolesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Log success
 	log.Printf("INFO: UpdateCustomRolesHandler - Role created successfully: %+v", role)
+}
+
+func RemoveIAMRolesHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	employeeID, ok := vars["empID"]
+	if !ok {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		log.Println("WARN: Invalid URL in RemoveIAMRolesHandler")
+		return
+	}
+
+	log.Printf("INFO: Request received for employee with ID: %s", employeeID)
+
+	var request sharedpackage.RemoveRoles
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	if err := decoder.Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("ERROR: Error decoding request body: %v", err)
+		return
+	}
+
+	log.Printf("INFO: RemoveIAMRolesHandler - Decoded request body fields: %+v", request)
+
+	// Specify your projectID (replace "your-project-id" with your actual project ID)
+	data, err := controllerFunctions.RemoveIAMRoles(employeeID, request)
+	if err != nil {
+		http.Error(w, "Error creating role", http.StatusInternalServerError)
+		log.Printf("ERROR: Error creating role: %v", err)
+		return
+	}
+	// Convert role to JSON format
+	roleJSON, err := json.Marshal(data)
+	if err != nil {
+		http.Error(w, "Error encoding document to JSON", http.StatusInternalServerError)
+		log.Printf("ERROR: Error encoding document to JSON: %v", err)
+		return
+	}
+
+	// Respond with JSON file
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(roleJSON)
+
+	// Log success
+	log.Printf("INFO: RemoveIAMRolesHandler - Role updated successfully: %+v", data)
 }

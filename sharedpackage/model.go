@@ -34,6 +34,12 @@ type AssignRole struct {
 	TeamID   string   `json:"teamID"`
 	DeptID   string   `json:"departmentID"`
 	IAMRoles []string `json:"iamRoles"`
+	Role     string   `json:role`
+}
+
+type RemoveRoles struct {
+	GroupID  string   `json:"grpID"`
+	IAMRoles []string `json:iamRoles`
 }
 
 type CustomRole struct {
