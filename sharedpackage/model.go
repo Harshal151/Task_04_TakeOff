@@ -3,14 +3,14 @@ package sharedpackage
 import "github.com/dgrijalva/jwt-go"
 
 type Employee struct {
-	FirstName string   `firestore:"firstName" json:"firstName"`
-	LastName  string   `firestore:"lastName" json:"lastName"`
-	Email     string   `firestore:"mailID" json:"mailID"`
-	Password  string   `firestore:"password" json:"password"`
-	Role      string   `firestore:"role" json:"role"`
-	IAMRoles  []string `firestore:"iamRoles" json:"iamRoles"`
-	TeamIDs    []string   `firestore:"teamIDs" json:"teamIDs"`
-	DeptIDs    []string   `firestore:"departmentIDs" json:"departmentIDs"`
+	FirstName string              `firestore:"firstName" json:"firstName"`
+	LastName  string              `firestore:"lastName" json:"lastName"`
+	Email     string              `firestore:"mailID" json:"mailID"`
+	Password  string              `firestore:"password" json:"password"`
+	Role      string              `firestore:"role" json:"role"`
+	IAMRoles  map[string][]string `firestore:"iamRoles" json:"iamRoles"`
+	TeamIDs   []string            `firestore:"teamIDs" json:"teamIDs"`
+	DeptID    string              `firestore:"departmentID" json:"departmentID"`
 }
 
 type Department struct {
@@ -23,7 +23,7 @@ type Department struct {
 
 type Team struct {
 	TeamName     string   `firestore:"teamName" json:"teamName"`
-	Roles        []string `firestore:"roles" json:"roles"`
+	IAMRoles     []string `firestore:"iamRoles" json:"iamRoles"`
 	LeadID       string   `firestore:"leadID" json:"leadID"`
 	DepartmentID string   `firestore:"departmentID" json:"departmentID"`
 	CreatedTime  string   `firestore:"createdTime" json:"createdTime"`
@@ -31,8 +31,9 @@ type Team struct {
 }
 
 type AssignRole struct {
-	UserID string   `json:"userID"`
-	Role   []string `json:"role"`
+	TeamID   string   `json:"teamID"`
+	DeptID   string   `json:"departmentID"`
+	IAMRoles []string `json:"iamRoles"`
 }
 
 type CustomRole struct {

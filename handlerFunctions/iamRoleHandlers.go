@@ -39,7 +39,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	expirationTime := time.Now().Add(time.Minute * 5)
 
-	claims := & sharedpackage.Claims{
+	claims := &sharedpackage.Claims{
 		Username: credentials.Username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
@@ -93,19 +93,36 @@ func AssignIAMRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("INFO: AssignIAMRoleHandler - Decoded request body with updated fields: %+v", request)
 
-	roles := request.Role
-	data, err := controllerFunctions.AddToDBAndAssign(employeeIDStr, roles)
+	if request.DeptID == "" {
+		http.Error(w, "Please provide departmentID", http.StatusBadRequest)
+		log.Println("ERROR: Provide departmentID.")
+		return
+	}
+	if request.IAMRoles == nil {
+		http.Error(w, "Please provide iamRoles ", http.StatusBadRequest)
+		log.Println("ERROR: Provide iamRoles .")
+		return
+	}
+
+	data, err := controllerFunctions.AssignIAMRole(request.DeptID, request.TeamID, employeeIDStr, request.IAMRoles)
 	if err != nil {
 		http.Error(w, "Failed to assign IAM role", http.StatusInternalServerError)
 		log.Printf("ERROR: Failed to assign IAM role: %v", err)
 		return
 	}
 
-	log.Printf("INFO: %s", *data)
+	// Convert struct to JSON
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(*data))
+	log.Printf("INFO: %s", jsonData)
 
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	// Write JSON data as the response
+	w.Write(jsonData)
 }
 
 // RemoveMemberHandler handles the HTTP request to remove an employee.
@@ -119,7 +136,7 @@ func RemoveMemberHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("INFO: Request received for employee with ID: %s", employeeIDStr)
 
-	err := controllerFunctions.Remove(employeeIDStr)
+	err := controllerFunctions.RemoveMember(employeeIDStr)
 	if err != nil {
 		http.Error(w, "Failed to remove employee", http.StatusInternalServerError)
 		log.Printf("ERROR: Failed to remove employee: %v", err)

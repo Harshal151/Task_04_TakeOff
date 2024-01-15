@@ -12,7 +12,6 @@ func main() {
 	controllerFunctions.InitializeFirestore()
 	r := mux.NewRouter()
 	r.HandleFunc("/assignRole/{id}", handlerFunctions.AssignIAMRoleHandler).Methods("POST")
-	r.HandleFunc("/deleteMember/{id}", handlerFunctions.RemoveMemberHandler).Methods("DELETE")
 	r.HandleFunc("/createCustomRole", handlerFunctions.CreateCustomRoleHandler).Methods("POST")
 	r.HandleFunc("/deleteCustomRole", handlerFunctions.DeleteCustomRoleHandler).Methods("DELETE")
 	r.HandleFunc("/undeleteCustomRole", handlerFunctions.UndeleteCustomRoleHandler).Methods("PUT")
@@ -22,6 +21,21 @@ func main() {
 	//Department Level
 	r.HandleFunc("/departments/create", handlerFunctions.CreateDepartmentHandler).Methods("POST")
 	r.HandleFunc("/departments/{dept_id}/delete", handlerFunctions.DeleteDepartmentHandler).Methods("DELETE")
+	r.HandleFunc("/departments/{dept_id}/update", handlerFunctions.UpadateDepartmentHandler).Methods("PATCH")
+	r.HandleFunc("/departments",handlerFunctions.ListDepartmentsHandler).Methods("GET")
+
+	//Employee Level
+	r.HandleFunc("/employees/create", handlerFunctions.CreateEmployeeHandler).Methods("POST")
+	r.HandleFunc("/employees/{id}/removeAccess", handlerFunctions.RemoveMemberHandler).Methods("DELETE")
+	r.HandleFunc("/employees/{empID}/delete",handlerFunctions.DeleteEmployeeHandler).Methods("DELETE")
+	r.HandleFunc("/employees/{empID}/update",handlerFunctions.UpdateEmployeeHandler).Methods("PATCH")
+	r.HandleFunc("/employees",handlerFunctions.ListEmployeeHandler).Methods("GET")
+
+	//Team Level
+	r.HandleFunc("/teams/create",handlerFunctions.CreateTeamHandler).Methods("POST")
+	r.HandleFunc("/teams/{teamID}/delete",handlerFunctions.DeleteTeamHandler).Methods("DELETE")
+	r.HandleFunc("/teams/{teamID}/update",handlerFunctions.UpdateTeamHandler).Methods("PATCH")
+	r.HandleFunc("/teams",handlerFunctions.ListTeamHandler).Methods("GET")
 
 	// Start the HTTP server using the Gorilla Mux router
 	http.Handle("/", r)

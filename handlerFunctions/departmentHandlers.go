@@ -61,7 +61,6 @@ func CreateDepartmentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-
 func DeleteDepartmentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	departmentID, ok := vars["dept_id"]
@@ -81,6 +80,79 @@ func DeleteDepartmentHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Respond with success status
 	w.WriteHeader(http.StatusNoContent)
-	
+
 	log.Printf("INFO: Department with ID %s deleted successfully", departmentID)
+}
+
+func UpadateDepartmentHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	departmentID, ok := vars["dept_id"]
+	if !ok {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		log.Println("UpadateDepartmentHandler WARN: Invalid URL")
+		return
+	}
+	log.Printf("UpadateDepartmentHandler INFO: Request received to delete employee with ID: %s", departmentID)
+
+	var updateDept sharedpackage.Department
+	err := json.NewDecoder(r.Body).Decode(&updateDept)
+	if err != nil {
+		log.Printf("UpadateDepartmentHandler ERROR: Error parsing request body: %v", err)
+		http.Error(w, "Error parsing request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("INFO: UpadateDepartmentHandler - Decoded request body fields: %+v", updateDept)
+
+	// Add the department and get the data
+	data, err := controllerFunctions.UpdateDepartment(departmentID, updateDept)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update employee: %v", err), http.StatusInternalServerError)
+		log.Printf("UpadateDepartmentHandler ERROR: Failed to update employee: %v", err)
+		return
+	}
+
+	// Convert the data to JSON
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal updated employe data to JSON: %v", err), http.StatusInternalServerError)
+		log.Printf("UpadateDepartmentHandler ERROR: Failed to marshal updated employee data to JSON: %v", err)
+		return
+	}
+
+	// Send the JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonData)
+
+}
+
+func ListDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
+	// Retrieve all departments
+	departments, err := controllerFunctions.ListDepartments()
+	if err != nil {
+		log.Printf("ERROR: Failed to get departments: %v", err)
+		http.Error(w, "Failed to retrieve departments", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("INFO: Retrieved %d departments", len(*departments))
+
+	// Convert departments to JSON format
+	departmentsJSON, err := json.Marshal(departments)
+	if err != nil {
+		log.Printf("ERROR: Failed to marshal departments to JSON: %v", err)
+		http.Error(w, "Failed to convert departments to JSON", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("INFO: Successfully marshaled departments to JSON")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Write JSON response
+	if _, err := w.Write(departmentsJSON); err != nil {
+		log.Printf("ERROR: Failed to send departments JSON response: %v", err)
+		http.Error(w, "Failed to send departments JSON response", http.StatusInternalServerError)
+		return
+	}
+	log.Println("INFO: Sent departments JSON response")
 }

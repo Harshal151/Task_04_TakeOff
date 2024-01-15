@@ -32,7 +32,7 @@ func RemoveIAM(proID string, userMail string) {
 }
 
 // AssignIAM assigns the specified roles to the user in the project.
-func AssignIAM(proID string, roles []string, userMail string) {
+func AssignIAM(proID string, roles []string, userMail string) error {
 	projectID := proID
 	member := "user:" + userMail
 
@@ -41,6 +41,7 @@ func AssignIAM(proID string, roles []string, userMail string) {
 	crmService, err := cloudresourcemanager.NewService(ctx)
 	if err != nil {
 		log.Fatalf("cloudresourcemanager.NewService: %v", err)
+		return fmt.Errorf("cloudresourcemanager.NewService: %v", err)
 	}
 
 	// Assign each specified role to the user
@@ -48,6 +49,7 @@ func AssignIAM(proID string, roles []string, userMail string) {
 		addBinding(crmService, projectID, member, role)
 		log.Printf("INFO: Assigned IAM role %s to user %s in project %s", role, userMail, projectID)
 	}
+	return nil
 }
 
 // addBinding adds the specified member to the project's IAM policy with the given role.

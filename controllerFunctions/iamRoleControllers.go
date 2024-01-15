@@ -74,8 +74,9 @@ func LoginUser(username string) (*string, error) {
 }
 
 // AddToDBAndAssign adds new roles to an employee document in the Firestore database.
-func AddToDBAndAssign(id string, newRoles []string) (*string, error) {
+func AssignIAMRole(deptID string, teamID string, empID string, newRoles []string) (*sharedpackage.Employee, error) {
 	ctx := context.Background()
+	var key string
 	// Check if Firestore client is initialized
 	if FirestoreClient == nil {
 		log.Println("ERROR: Firestore client not initialized")
@@ -83,7 +84,7 @@ func AddToDBAndAssign(id string, newRoles []string) (*string, error) {
 	}
 
 	// Specify the path to the document
-	docRef := FirestoreClient.Collection("employees").Doc(id)
+	docRef := FirestoreClient.Collection("employees").Doc(empID)
 
 	// Get the document snapshot
 	docSnapshot, err := docRef.Get(ctx)
@@ -94,8 +95,8 @@ func AddToDBAndAssign(id string, newRoles []string) (*string, error) {
 
 	// Check if the document exists
 	if !docSnapshot.Exists() {
-		log.Printf("ERROR: Document with ID %s does not exist", id)
-		return nil, fmt.Errorf("Document with ID %s does not exist", id)
+		log.Printf("ERROR: Document with ID %s does not exist", empID)
+		return nil, fmt.Errorf("Document with ID %s does not exist", empID)
 	}
 
 	// Initialize an empty Employee struct
@@ -107,60 +108,77 @@ func AddToDBAndAssign(id string, newRoles []string) (*string, error) {
 		return nil, fmt.Errorf("Error converting document data: %v", err)
 	}
 
-	log.Printf("INFO: Found employee with ID: %s", id)
+	log.Printf("INFO: Found employee with ID: %s", empID)
 
-	// Create a set to store unique roles
-	uniqueRoles := make(map[string]struct{})
-
-	// Add existing roles to the set
-	for _, role := range employee.IAMRoles {
-		uniqueRoles[role] = struct{}{}
-	}
-
-	// Add new roles to the set
-	for _, role := range newRoles {
-		uniqueRoles[role] = struct{}{}
-	}
-
-	// Convert the set back to a slice
-	var roles []string
-	for role := range uniqueRoles {
-		roles = append(roles, role)
-	}
-
-	// Log the roles before update
-	log.Printf("INFO: Existing roles: %v", employee.IAMRoles)
-	log.Printf("INFO: New roles to be added: %v", newRoles)
-	log.Printf("INFO: Roles after update: %v", roles)
-
-	// Check if the "roles" field is empty before updating
-	if len(roles) > 0 {
-		// Update the "role" field in the document
-		updateData := map[string]interface{}{
-			"iamRoles": roles,
-		}
-
-		// Update the document with the modified field
-		if _, err := docRef.Set(ctx, updateData, firestore.MergeAll); err != nil {
-			log.Printf("ERROR: Error updating document: %v", err)
-			return nil, fmt.Errorf("Error updating document: %v", err)
-		}
+	if teamID == "" {
+		key = deptID
 	} else {
-		log.Printf("INFO: No new roles to add. Skipping update.")
+		key = teamID
+	}
+
+	// Iterate over all keys in employee.IAMRoles
+	for _, roles := range employee.IAMRoles {
+		// Create a map to store unique roles from the existing slice
+		existingRolesMap := make(map[string]struct{})
+		for _, role := range roles {
+			existingRolesMap[role] = struct{}{}
+		}
+
+		// Check if any role from newRoles exists in the existingRolesMap
+		for i := 0; i < len(newRoles); {
+			if _, exists := existingRolesMap[newRoles[i]]; exists {
+				// Role exists, remove it from newRoles
+				newRoles = append(newRoles[:i], newRoles[i+1:]...)
+			} else {
+				// Role doesn't exist, move to the next role
+				i++
+			}
+		}
+	}
+
+	if roles, keyExists := employee.IAMRoles[key]; keyExists {
+		// roles is the slice associated with the provided key
+
+		// Create a map to store unique roles from the existing slice
+		existingRolesMap := make(map[string]struct{})
+		for _, role := range roles {
+			existingRolesMap[role] = struct{}{}
+		}
+		log.Printf("INFO: Existing roles: %v", existingRolesMap)
+
+		log.Printf("INFO: New roles to be added: %v", newRoles)
+		// Add new roles to the existingRolesMap if they are not already present
+		for _, role := range newRoles {
+			if _, exists := existingRolesMap[role]; !exists {
+				roles = append(roles, role)
+			}
+		}
+
+		// Update the roles for the provided key in the map
+		employee.IAMRoles[key] = roles
+		log.Printf("INFO: Roles after update: %v", employee.IAMRoles[key])
+	} else {
+		log.Printf("INFO: Creating new key %v with new roles %v.", key, newRoles)
+		employee.IAMRoles[key] = newRoles
+		log.Printf("INFO: Created new field with key %v and vale %v.", key, newRoles)
+	}
+
+	// Update the document with the modified IAMRoles field
+	if _, err := docRef.Set(ctx, map[string]interface{}{"iamRoles": employee.IAMRoles}, firestore.MergeAll); err != nil {
+		log.Printf("ERROR: Error updating document: %v", err)
+		return nil, fmt.Errorf("Error updating document: %v", err)
 	}
 
 	// Call the function directly without specifying the package name
-	iamRole.AssignIAM(projectID, roles, employee.Email)
-	returnMessage := "Role assigned to principal " + employee.Email + "."
-	log.Printf("INFO: Role successfully assigned to userID %s.", id)
-	return &returnMessage, nil
+	iamRole.AssignIAM(projectID, employee.IAMRoles[key], employee.Email)
+	return &employee, nil
 }
 
 // Remove deletes an employee document from the Firestore database.
-func Remove(id string) error {
+func RemoveMember(empID string) error {
 	// Specify the path to the document
 	ctx := context.Background()
-	docRef := FirestoreClient.Collection("employees").Doc(id)
+	docRef := FirestoreClient.Collection("employees").Doc(empID)
 
 	// Get the document snapshot
 	docSnapshot, err := docRef.Get(ctx)
@@ -171,8 +189,8 @@ func Remove(id string) error {
 
 	// Check if the document exists
 	if !docSnapshot.Exists() {
-		log.Printf("ERROR: Document with ID %s does not exist", id)
-		return fmt.Errorf("Document with ID %s does not exist", id)
+		log.Printf("ERROR: Document with ID %s does not exist", empID)
+		return fmt.Errorf("Document with ID %s does not exist", empID)
 	}
 
 	// Initialize an empty Employee struct
@@ -186,8 +204,17 @@ func Remove(id string) error {
 
 	iamRole.RemoveIAM(projectID, employee.Email)
 
-	// Clear the Role field
-	employee.IAMRoles = nil
+	// Delete all keys from the map
+	for key := range employee.IAMRoles {
+		if key == "0" {
+			continue
+		}
+		delete(employee.IAMRoles, key)
+	}
+
+	employee.Role = ""
+	employee.TeamIDs = make([]string, 0)
+	employee.DeptID = ""
 
 	// Update the document with the modified field
 	if _, err := docRef.Set(ctx, employee); err != nil {
@@ -195,7 +222,7 @@ func Remove(id string) error {
 		return fmt.Errorf("Error updating document: %v", err)
 	}
 
-	log.Printf("INFO: Document with ID %s successfully deleted", id)
+	log.Printf("INFO: Document with ID %s successfully deleted", empID)
 
 	return nil
 }
